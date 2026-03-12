@@ -1,0 +1,7 @@
+streamlit
+pillow
+pandas
+pydeck
+tensorflow
+opencv-python
+numpy

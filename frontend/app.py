@@ -1,3 +1,9 @@
+import sys
+import os
+
+# Add project root to sys.path for submodule imports
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 import streamlit as st
 from PIL import Image
 import time
@@ -7,6 +13,7 @@ import pandas as pd
 import pydeck as pdk
 from ai.predict import predict_crack
 from backend.risk_assessment import risk_level
+from utils.image_processing import get_canny_edges
 
 # --- SYSTEM CONFIGURATION ---
 st.set_page_config(
@@ -415,26 +422,36 @@ def terminal_page():
             placeholder.empty()
             p.empty()
             
-            # Diagnostic Simulation: Three-Tier Risk Logic
-            rand_val = random.random()
-            if rand_val > 0.7:
+            # ACTUAL AI INTEGRATION
+            img_input = Image.open(file_up)
+            
+            # Get AI Prediction (label, display_confidence, raw crack_probability)
+            res_label, confidence, crack_probability = predict_crack(img_input)
+            
+            # Get Risk Assessment from Backend (uses crack probability, not display confidence)
+            risk_tier_name, health_score, recommendation = risk_level(crack_probability)
+            
+            # Map risk level to UI styling
+            if risk_tier_name == "HIGH":
                 risk_tier = "res-high"
                 risk_label = "CRITICAL ANOMALY"
                 risk_color = "#dc2626"
                 risk_desc = "HIGH RISK"
-                score = random.uniform(25, 48)
-            elif rand_val > 0.4:
+            elif risk_tier_name == "MEDIUM":
                 risk_tier = "res-med"
                 risk_label = "MODERATE STRESS"
                 risk_color = "#d97706"
                 risk_desc = "MEDIUM RISK"
-                score = random.uniform(62, 79)
             else:
                 risk_tier = "res-low"
                 risk_label = "INTEGRITY VERIFIED"
                 risk_color = "#16a34a"
                 risk_desc = "STABLE"
-                score = random.uniform(91, 100)
+            
+            score = health_score
+            
+            # Canny Edge detection for visualization
+            edges = get_canny_edges(img_input)
             
             st.markdown(f"""
             <div class='card' style='border-top: 10px solid {risk_color};'>
@@ -444,20 +461,25 @@ def terminal_page():
                 </div>
                 
                 <div class="metric-grid" style='margin-bottom: 2rem;'>
-                    <div class='metric-pill pill-blue' style='padding:1.2rem; border-radius:16px;'><div class='stat-label'>Health Score</div><div class='stat-value' style='font-size: 1.8rem; color:{risk_color};'>{score:.1f}</div></div>
-                    <div class='metric-pill pill-green' style='padding:1.2rem; border-radius:16px;'><div class='stat-label'>Precision</div><div class='stat-value' style='font-size: 1.8rem;'>{random.uniform(98.5, 99.9):.1f}%</div></div>
+                    <div class='metric-pill pill-blue' style='padding:1.2rem; border-radius:16px;'><div class='stat-label'>Health Score</div><div class='stat-value' style='font-size: 1.8rem; color:{risk_color};'>{score}</div></div>
+                    <div class='metric-pill pill-green' style='padding:1.2rem; border-radius:16px;'><div class='stat-label'>Confidence</div><div class='stat-value' style='font-size: 1.8rem;'>{confidence*100:.1f}%</div></div>
                     <div class='metric-pill pill-orange' style='padding:1.2rem; border-radius:16px;'><div class='stat-label'>Load Bias</div><div class='stat-value' style='font-size: 1.2rem; padding-top:10px;'>{stress.split()[0].upper()}</div></div>
                 </div>
                 
                 <h4 style='color: #1e1b4b;'>Maintenance Directive</h4>
                 <div style='background: #f8fafc; padding: 1.5rem; border-radius: 16px; border: 1px solid #f1f5f9; font-size: 0.95rem; line-height: 1.6;'>
-                    { "<b>IMMEDIATE ACTION:</b> Deep fracture propagation detected. Deploy onsite inspection team and coordinate structural shoring within 24 standard working hours." if risk_tier == "res-high" else 
-                      "<b>ADVISORY:</b> Moderate surface wear identified. Schedule detailed maintenance review and apply protective coating within 30 days." if risk_tier == "res-med" else
-                      "<b>STANDARD CLEARANCE:</b> Asset performance within safe operating window. Continue automated monitoring sequence." }
+                    <b>{risk_tier_name} PRIORITY:</b> {recommendation}
                 </div>
                 
-                <br>
+                <div style='margin-top: 2rem;'>
+                    <h4 style='color: #1e1b4b;'>Structural Edge Mapping</h4>
+                    <p style='color: #64748b; font-size: 0.8rem;'>Canny Edge Detection analysis showing surface discontinuities.</p>
+                </div>
                 """, unsafe_allow_html=True)
+            
+            st.image(edges, caption="Edge Detection Matrix", use_container_width=True)
+            
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🚀 GENERATE ENTERPRISE AUDIT REPORT", use_container_width=True):
                 st.toast("Compiling structural data...", icon="📄")
                 time.sleep(1)
