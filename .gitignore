@@ -1,1 +1,4 @@
-
+data/
+dataset/
+*.zip
+*.h5
