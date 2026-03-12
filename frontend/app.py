@@ -5,6 +5,8 @@ import random
 import datetime
 import pandas as pd
 import pydeck as pdk
+from ai.predict import predict_crack
+from backend.risk_assessment import risk_level
 
 # --- SYSTEM CONFIGURATION ---
 st.set_page_config(
@@ -563,3 +565,4 @@ else:
     elif st.session_state.current_page == "History": history_page()
     
     st.markdown("</div>", unsafe_allow_html=True)
+
