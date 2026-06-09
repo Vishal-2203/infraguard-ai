@@ -7,4 +7,4 @@ def risk_level(confidence):
         return "MEDIUM", 60, "Schedule maintenance"
 
     else:
-        return "LOW", 90, "Structure appears stable"
+        return "LOW", 90, "Structure seems to be  stable"
